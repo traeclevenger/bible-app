@@ -722,7 +722,7 @@ document.querySelectorAll('.tab').forEach(btn => {
     document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     $('pane-' + btn.dataset.pane).classList.add('active');
-    if (btn.dataset.pane === 'chat') { updateChatContext(); setTimeout(() => $('chatInput').focus(), 50); }
+    if (btn.dataset.pane === 'chat') { updateChatContext(); $('chatInput').focus(); }
   });
 });
 
