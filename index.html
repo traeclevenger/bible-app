@@ -220,17 +220,14 @@
     font-weight: 600; vertical-align: super;
     margin-right: 2px;
   }
-  /* NLT translator notes — float into the reserved right margin so they
-     don't break the flow of the main text. On narrow screens, the @media
-     rule on .passage removes the padding and the notes fall back inline. */
+  /* NLT translator notes — positioned absolutely in the right margin and
+     aligned with their source verse via JS (alignNotes). On narrow screens
+     they fall back to inline floats. */
   .passage .tn, .passage tn,
   .passage .footnote-text, .passage .fn,
   .passage .ref, .passage .a-fn {
     display: block;
-    float: right;
-    clear: right;
     width: 220px;
-    margin: 0.3em -240px 0.6em 16px;
     padding: 8px 10px;
     background: var(--bg-elev-2) !important;
     border: 1px solid var(--border);
@@ -241,18 +238,28 @@
     font-style: italic;
     line-height: 1.5;
   }
+  .passage .tn.aligned, .passage tn.aligned,
+  .passage .footnote-text.aligned, .passage .fn.aligned {
+    position: absolute;
+    right: 0;
+    margin: 0;
+  }
   @media (max-width: 1100px) {
     .passage .tn, .passage tn, .passage .footnote-text, .passage .fn,
-    .passage .ref, .passage .a-fn {
-      width: 180px; margin-right: -200px;
-    }
+    .passage .ref, .passage .a-fn { width: 180px; }
   }
   @media (max-width: 820px) {
-    /* Inline fallback for narrow screens — notes float within the column. */
+    /* Inline fallback for narrow screens. */
     .passage .tn, .passage tn, .passage .footnote-text, .passage .fn,
     .passage .ref, .passage .a-fn {
       width: 200px; max-width: 45%;
-      margin-right: 0;
+      float: right; clear: right;
+      margin: 0.3em 0 0.6em 16px;
+    }
+    .passage .tn.aligned, .passage tn.aligned,
+    .passage .footnote-text.aligned, .passage .fn.aligned {
+      position: static;
+      margin: 0.3em 0 0.6em 16px;
     }
   }
   .passage .tn i, .passage .tn em,
@@ -648,6 +655,7 @@ function setSize(n) {
   document.documentElement.style.setProperty('--base-size', state.size + 'pt');
   localStorage.setItem(STORAGE.size, String(state.size));
   if ($('sizeDisplay')) $('sizeDisplay').textContent = state.size + 'pt';
+  if (typeof scheduleRealign === 'function') scheduleRealign();
 }
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
@@ -733,13 +741,84 @@ async function loadChapter(book, chapter) {
       return;
     }
     body.innerHTML = '<div class="passage">' + (data.html || '') + '</div>';
-    normalizeChapterMarker(body);
+    postProcessPassage(body);
     body.scrollTop = 0;
   } catch (err) {
     body.innerHTML = '<div class="empty">Failed to load: ' + escapeHtml(String(err.message || err)) + '</div>';
   }
   // close sidebar on small screens after selecting
   if (window.innerWidth <= 700) $('sidebar').classList.remove('open');
+}
+
+// Run all passage post-processors in the right order.
+function postProcessPassage(container) {
+  normalizeChapterMarker(container);
+  mergeDashContinuations(container);
+  alignNotes(container);
+}
+
+// NLT returns sentences interrupted by an em dash as two separate <p> tags
+// (e.g. "...we hated each other. 4 But—" then "When God..."). Merge them so
+// the dangling "But—" reflows with the next clause.
+function mergeDashContinuations(container) {
+  const passage = container.querySelector('.passage');
+  if (!passage) return;
+  const ps = [...passage.querySelectorAll('p')];
+  for (let i = 0; i < ps.length - 1; i++) {
+    const p = ps[i];
+    const text = p.textContent.replace(/\s+/g, ' ').trim();
+    // Ends with em/en dash (possibly with trailing whitespace handled above).
+    if (/[—–-]$/.test(text)) {
+      const next = ps[i + 1];
+      if (!next || next.parentElement !== p.parentElement) continue;
+      // Append next paragraph's children inline; preserve a space between.
+      const space = document.createTextNode(' ');
+      p.appendChild(space);
+      while (next.firstChild) p.appendChild(next.firstChild);
+      // Carry over any class that styles the merged paragraph (rare).
+      next.remove();
+    }
+  }
+}
+
+// Position translator notes absolutely in the right margin, aligned with the
+// verse number they reference. Falls back to source position if no match.
+function alignNotes(container) {
+  const passage = container.querySelector('.passage');
+  if (!passage) return;
+  // On narrow screens we keep the inline float fallback.
+  if (window.innerWidth <= 820) return;
+
+  const notes = [...passage.querySelectorAll('.tn, tn, .footnote-text, .fn')];
+  if (!notes.length) return;
+
+  // Helper: find the verse number element whose text matches `n`.
+  const verseEls = [...passage.querySelectorAll('.vn, .verse-num, .v-num, .verse, .chapter-num.as-verse, .chapter-number.as-verse')];
+  const findVerse = (n) => verseEls.find(el => (el.textContent || '').trim() === String(n));
+
+  const passageRect = passage.getBoundingClientRect();
+  let lastBottom = 0;
+
+  notes.forEach(note => {
+    // Extract leading reference like "3:5" → verse 5.
+    const m = (note.textContent || '').match(/\b\d+\s*:\s*(\d+)/);
+    let target = null;
+    if (m) target = findVerse(m[1]);
+    // Compute desired top relative to .passage.
+    let top;
+    if (target) {
+      top = target.getBoundingClientRect().top - passageRect.top;
+    } else {
+      top = note.getBoundingClientRect().top - passageRect.top;
+    }
+    // Stack vertically so adjacent notes don't overlap.
+    if (top < lastBottom + 8) top = lastBottom + 8;
+    note.classList.add('aligned');
+    note.style.top = top + 'px';
+    // Force layout to measure final height.
+    const h = note.offsetHeight;
+    lastBottom = top + h;
+  });
 }
 
 // Replace the big chapter-number element with a small "1" verse marker so the
@@ -1016,7 +1095,7 @@ async function loadRefInPanel(ref) {
     const html = '<div class="passage">' + (data.html || '') + '</div>';
     state.toolStack.push({ tool: 'passage', ref, selection: ref, html, title: 'Passage' });
     body.innerHTML = html;
-    normalizeChapterMarker(body);
+    postProcessPassage(body);
     body.scrollTop = 0;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     updateToolPanelHeader();
@@ -1130,6 +1209,23 @@ document.querySelectorAll('.version-btn[data-default-version]').forEach(btn => {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
+
+// Re-align notes on resize/font-size change so they stay anchored.
+let _alignTimer = null;
+function scheduleRealign() {
+  clearTimeout(_alignTimer);
+  _alignTimer = setTimeout(() => {
+    document.querySelectorAll('#readerBody .passage, #toolBody .passage').forEach(p => {
+      // Reset positioned notes before re-running.
+      p.querySelectorAll('.tn.aligned, tn.aligned, .footnote-text.aligned, .fn.aligned').forEach(n => {
+        n.classList.remove('aligned');
+        n.style.top = '';
+      });
+      alignNotes(p.parentElement || p);
+    });
+  }, 80);
+}
+window.addEventListener('resize', scheduleRealign);
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 (function init() {
