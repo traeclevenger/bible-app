@@ -167,14 +167,16 @@
     margin: 1.6em 0 0.6em; letter-spacing: 0.02em;
   }
   .passage p { margin: 0.6em 0; }
-  .passage .chapter-num {
-    font-size: 1.8em !important; font-weight: 700; color: var(--accent);
-    float: left; line-height: 1; margin: 0.1em 0.2em 0 0;
-  }
-  .passage .verse-num {
+  /* Chapter-number markers (.chapter-num for ESV, .chapter-number/.cw_ch for NLT)
+     are transformed in JS to render as verse-1 markers — see normalizeChapterMarker. */
+  .passage .verse-num,
+  .passage .chapter-num.as-verse,
+  .passage .chapter-number.as-verse,
+  .passage .cw_ch.as-verse {
     font-size: 0.7em !important; color: var(--accent-dim);
     font-weight: 600; vertical-align: super;
     margin-right: 2px; padding-right: 1px;
+    float: none !important; line-height: inherit;
   }
   .passage .woc { color: var(--text); }
   .passage .small-caps { font-variant: small-caps; }
@@ -190,11 +192,6 @@
   /* NLT passage header (e.g. "Titus 3:1-15, NLT") */
   .passage .bk_ch_vs_header, .passage .bibleref {
     display: none; /* redundant with our own refLabel above */
-  }
-  /* NLT chapter number block — "3" appearing alone */
-  .passage .chapter-number, .passage .cw_ch {
-    font-size: 1.8em !important; font-weight: 700; color: var(--accent);
-    float: left; line-height: 1; margin: 0.1em 0.2em 0 0;
   }
   /* NLT section subheadings (e.g. "Do What Is Good") */
   .passage .subhead, .passage .subheading {
@@ -712,12 +709,43 @@ async function loadChapter(book, chapter) {
       return;
     }
     body.innerHTML = '<div class="passage">' + (data.html || '') + '</div>';
+    normalizeChapterMarker(body);
     body.scrollTop = 0;
   } catch (err) {
     body.innerHTML = '<div class="empty">Failed to load: ' + escapeHtml(String(err.message || err)) + '</div>';
   }
   // close sidebar on small screens after selecting
   if (window.innerWidth <= 700) $('sidebar').classList.remove('open');
+}
+
+// Replace the big chapter-number element with a small "1" verse marker so the
+// first verse has the same indicator style as the rest. Works for both APIs.
+function normalizeChapterMarker(container) {
+  const els = container.querySelectorAll('.passage .chapter-num, .passage .chapter-number, .passage .cw_ch');
+  els.forEach(el => {
+    const raw = (el.textContent || '').trim();
+    let verseN = '1';
+    const m = raw.match(/:\s*(\d+)/);
+    if (m) verseN = m[1];
+    el.classList.add('as-verse');
+    el.textContent = verseN;
+    el.removeAttribute('style');
+
+    // If the marker sits outside a paragraph (NLT puts <span class="chapter-number">
+    // before the heading and first <p>), inject it at the start of the first
+    // verse-containing paragraph so it renders inline with the text.
+    const parent = el.parentElement;
+    if (parent && parent.classList.contains('passage')) {
+      // Find the next paragraph-like sibling that holds verse text
+      let next = el.nextElementSibling;
+      while (next && /^(H\d|SPAN|BR)$/.test(next.tagName) && !next.classList.contains('body-ch-hd')) {
+        next = next.nextElementSibling;
+      }
+      if (next && (next.tagName === 'P' || next.classList.contains('body-ch-hd'))) {
+        next.insertBefore(el, next.firstChild);
+      }
+    }
+  });
 }
 
 function updateNavArrows() {
@@ -964,6 +992,7 @@ async function loadRefInPanel(ref) {
     const html = '<div class="passage">' + (data.html || '') + '</div>';
     state.toolStack.push({ tool: 'passage', ref, selection: ref, html, title: 'Passage' });
     body.innerHTML = html;
+    normalizeChapterMarker(body);
     body.scrollTop = 0;
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     updateToolPanelHeader();
