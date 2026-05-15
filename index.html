@@ -851,10 +851,12 @@ function normalizeChapterMarker(container) {
   }
   if (!target) return;
 
-  // ESV: target may already begin with its own <b class="verse-num">1</b>.
-  // Don't duplicate.
+  // If the API already provided a verse-1 marker inside the target (ESV uses
+  // .verse-num; NLT uses .vn, .v-num, .verse), don't duplicate it.
   const existingFirst = target.firstElementChild;
-  if (existingFirst && existingFirst.classList.contains('verse-num') &&
+  const VERSE_NUM_CLASSES = ['verse-num', 'vn', 'v-num', 'verse'];
+  if (existingFirst &&
+      VERSE_NUM_CLASSES.some(c => existingFirst.classList.contains(c)) &&
       (existingFirst.textContent || '').trim() === verseN) return;
 
   const marker = document.createElement('span');
