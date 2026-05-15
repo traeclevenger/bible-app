@@ -167,7 +167,13 @@
     font-size: 1.15em !important; font-weight: 600; color: var(--text-dim);
     margin: 1.6em 0 0.6em; letter-spacing: 0.02em;
   }
-  .passage p { margin: 0.6em 0; text-indent: 0 !important; }
+  .passage p,
+  .passage .body-ch-hd,
+  .passage .body-indent {
+    margin: 0.6em 0;
+    text-indent: 0 !important;
+    line-height: 1.85 !important;
+  }
   /* NLT indents the first line of new paragraphs (e.g. "body-indent" class).
      Normalize so every verse aligns to the same left edge. */
   .passage .body-indent, .passage .body-poetry,
