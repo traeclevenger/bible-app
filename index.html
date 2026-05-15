@@ -821,25 +821,46 @@ function alignNotes(container) {
 function normalizeChapterMarker(container) {
   const passage = container.querySelector('.passage');
   if (!passage) return;
-  const els = passage.querySelectorAll('.chapter-num, .chapter-number, .cw_ch');
-  els.forEach(el => {
-    const raw = (el.textContent || '').trim();
-    let verseN = '1';
-    const m = raw.match(/:\s*(\d+)/);
-    if (m) verseN = m[1];
-    el.classList.add('as-verse');
-    el.textContent = verseN;
-    el.removeAttribute('style');
+  const markers = [...passage.querySelectorAll('.chapter-num, .chapter-number, .cw_ch')];
+  if (!markers.length) return;
 
-    // Move into the first verse-bearing paragraph so it renders inline with
-    // the text. NLT places the chapter-number span as a sibling of the
-    // section heading and first <p>; ESV usually has it already inline in
-    // the first <b>/<p>, so the move is a no-op there.
-    const firstP = passage.querySelector('p.body-ch-hd, .body-ch-hd, p');
-    if (firstP && !firstP.contains(el)) {
-      firstP.insertBefore(el, firstP.firstChild);
+  // ESV format is "3:1" → "1". NLT format is "3" → "1".
+  let verseN = '1';
+  for (const el of markers) {
+    const m = (el.textContent || '').trim().match(/:\s*(\d+)/);
+    if (m) { verseN = m[1]; break; }
+  }
+
+  // Remove every original marker and any now-empty wrapper paragraphs the
+  // API may have left behind (e.g. <p><span class="chapter-number">3</span></p>).
+  markers.forEach(el => {
+    const wrap = el.parentElement;
+    el.remove();
+    if (wrap && wrap !== passage && wrap.tagName === 'P' && wrap.textContent.trim() === '') {
+      wrap.remove();
     }
   });
+
+  // Find the first paragraph that holds actual verse content. Prefer NLT's
+  // body-ch-hd marker; fall back to the first non-trivial <p>.
+  let target = passage.querySelector('p.body-ch-hd, .body-ch-hd');
+  if (!target) {
+    for (const p of passage.querySelectorAll('p')) {
+      if (p.textContent.trim().length > 5) { target = p; break; }
+    }
+  }
+  if (!target) return;
+
+  // ESV: target may already begin with its own <b class="verse-num">1</b>.
+  // Don't duplicate.
+  const existingFirst = target.firstElementChild;
+  if (existingFirst && existingFirst.classList.contains('verse-num') &&
+      (existingFirst.textContent || '').trim() === verseN) return;
+
+  const marker = document.createElement('span');
+  marker.className = 'verse-num';
+  marker.textContent = verseN;
+  target.insertBefore(marker, target.firstChild);
 }
 
 function updateNavArrows() {
