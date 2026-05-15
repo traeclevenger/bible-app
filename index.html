@@ -167,7 +167,13 @@
     font-size: 1.15em !important; font-weight: 600; color: var(--text-dim);
     margin: 1.6em 0 0.6em; letter-spacing: 0.02em;
   }
-  .passage p { margin: 0.6em 0; }
+  .passage p { margin: 0.6em 0; text-indent: 0 !important; }
+  /* NLT indents the first line of new paragraphs (e.g. "body-indent" class).
+     Normalize so every verse aligns to the same left edge. */
+  .passage .body-indent, .passage .body-poetry,
+  .passage p[class*="indent"], .passage p[class*="-indent"] {
+    text-indent: 0 !important; padding-left: 0 !important;
+  }
   /* Chapter-number markers (.chapter-num for ESV, .chapter-number/.cw_ch for NLT)
      are transformed in JS to render as verse-1 markers — see normalizeChapterMarker. */
   .passage .verse-num,
@@ -749,7 +755,27 @@ async function loadChapter(book, chapter) {
 function postProcessPassage(container) {
   normalizeChapterMarker(container);
   mergeDashContinuations(container);
+  stripLeadingWhitespace(container);
   alignNotes(container);
+}
+
+// NLT prefixes some paragraphs with a non-breaking space (or regular space)
+// to indent the first line — printed-Bible convention. Strip it so every
+// verse aligns to the same left edge.
+function stripLeadingWhitespace(container) {
+  const passage = container.querySelector('.passage');
+  if (!passage) return;
+  passage.querySelectorAll('p').forEach(p => {
+    let n = p.firstChild;
+    while (n && n.nodeType === Node.TEXT_NODE && /^[\s ]+$/.test(n.nodeValue)) {
+      const next = n.nextSibling;
+      p.removeChild(n);
+      n = next;
+    }
+    if (n && n.nodeType === Node.TEXT_NODE) {
+      n.nodeValue = n.nodeValue.replace(/^[\s ]+/, '');
+    }
+  });
 }
 
 // NLT returns sentences interrupted by an em dash as two separate <p> tags
