@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Bible Study</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --bg-elev: #161c23;
+    --bg-elev-2: #1d242d;
+    --border: #2a323d;
+    --border-strong: #3a4452;
+    --text: #e6e3dc;
+    --text-dim: #9aa3b0;
+    --text-faint: #6b7480;
+    --accent: #d4a373;
+    --accent-dim: #8a6a4a;
+    --danger: #c75a5a;
+    --link: #8fb3d9;
+    --base-size: 12pt;
+    --font: Arial, Helvetica, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: var(--base-size);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  button { font-family: var(--font); cursor: pointer; }
+
+  /* ── Layout ──────────────────────────────────────────────────────────── */
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .brand { font-size: 14pt; font-weight: 600; letter-spacing: 0.02em; color: var(--text); }
+  .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .tab {
+    background: transparent; border: none;
+    color: var(--text-dim);
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 11pt; font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { background: var(--bg-elev-2); color: var(--text); }
+
+  .pane { flex: 1; overflow: hidden; display: none; }
+  .pane.active { display: flex; }
+
+  /* ── Read pane ──────────────────────────────────────────────────────── */
+  .read-pane { width: 100%; }
+  .sidebar {
+    width: 280px; flex-shrink: 0;
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-title { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); flex: 1; }
+  .back-btn {
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+    padding: 4px 10px; border-radius: 6px; font-size: 10pt;
+  }
+  .back-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+  .book-list, .chapter-grid { overflow-y: auto; flex: 1; padding: 8px; -webkit-overflow-scrolling: touch; }
+  .book-section-label {
+    padding: 12px 12px 6px;
+    font-size: 9pt; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-faint);
+  }
+  .book-item {
+    display: block; width: 100%;
+    background: transparent; border: none; color: var(--text);
+    text-align: left; padding: 10px 12px;
+    border-radius: 6px; font-size: 12pt;
+    min-height: 40px;
+  }
+  .book-item:hover { background: var(--bg-elev-2); }
+  .book-item.active { background: var(--bg-elev-2); color: var(--accent); }
+  .chapter-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 12px; align-content: start; }
+  .chapter-btn {
+    aspect-ratio: 1;
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 6px;
+    font-size: 11pt; min-height: 44px;
+  }
+  .chapter-btn:hover { border-color: var(--accent-dim); }
+  .chapter-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+
+  .reader {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .reader-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+    flex-shrink: 0;
+  }
+  .nav-arrow {
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px; height: 36px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .nav-arrow:hover { border-color: var(--accent-dim); }
+  .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+  .ref-label {
+    flex: 1; font-size: 14pt; font-weight: 600; letter-spacing: 0.01em;
+    text-align: center;
+  }
+  .version-toggle {
+    display: inline-flex; background: var(--bg-elev-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 2px; gap: 2px;
+  }
+  .version-btn {
+    background: transparent; border: none; color: var(--text-dim);
+    padding: 6px 14px; border-radius: 6px; font-size: 10pt; font-weight: 600;
+  }
+  .version-btn.active { background: var(--accent); color: var(--bg); }
+  .size-stepper { display: inline-flex; gap: 2px; align-items: center; }
+  .size-btn {
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 30px; height: 30px; border-radius: 6px; font-size: 12pt; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .size-btn:hover { color: var(--text); }
+
+  .reader-body {
+    flex: 1; overflow-y: auto; padding: 32px 8% 120px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .reader-body .passage {
+    max-width: 720px; margin: 0 auto;
+    font-size: var(--base-size);
+    line-height: 1.85;
+  }
+  /* ESV HTML styling */
+  .passage h2, .passage h3 {
+    font-size: 1.15em; font-weight: 600; color: var(--text-dim);
+    margin: 1.6em 0 0.6em; letter-spacing: 0.02em;
+  }
+  .passage p { margin: 0.6em 0; }
+  .passage .chapter-num {
+    font-size: 1.8em; font-weight: 700; color: var(--accent);
+    float: left; line-height: 1; margin: 0.1em 0.2em 0 0;
+  }
+  .passage .verse-num {
+    font-size: 0.7em; color: var(--accent-dim);
+    font-weight: 600; vertical-align: super;
+    margin-right: 2px; padding-right: 1px;
+  }
+  .passage .woc { color: var(--text); }
+  .passage .small-caps { font-variant: small-caps; }
+  .passage .footnote { display: none; }
+  .passage .copyright, .passage .copy {
+    margin-top: 2em; font-size: 0.85em; color: var(--text-faint); font-style: italic;
+  }
+  /* NLT can render heavy inline styling; soften it */
+  .passage [style*="color"] { color: inherit !important; }
+  .passage [style*="background"] { background: transparent !important; }
+
+  .loading, .empty {
+    text-align: center; color: var(--text-faint);
+    padding: 60px 20px; font-size: 11pt;
+  }
+
+  /* ── Chat pane ──────────────────────────────────────────────────────── */
+  .chat-pane { flex-direction: column; width: 100%; }
+  .chat-header {
+    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .chat-context-pill {
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 4px 10px; border-radius: 12px;
+    font-size: 10pt;
+  }
+  .chat-clear {
+    margin-left: auto;
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--text-dim); padding: 6px 12px; border-radius: 6px; font-size: 10pt;
+  }
+  .chat-clear:hover { color: var(--text); border-color: var(--accent-dim); }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 24px 8%;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chat-messages-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+  .msg { display: flex; gap: 12px; }
+  .msg-bubble {
+    padding: 12px 16px; border-radius: 12px;
+    max-width: 80%; font-size: var(--base-size); line-height: 1.65;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  .msg.user { justify-content: flex-end; }
+  .msg.user .msg-bubble { background: var(--accent); color: var(--bg); }
+  .msg.assistant .msg-bubble { background: var(--bg-elev); border: 1px solid var(--border); }
+  .msg.assistant .msg-bubble .scripture-link {
+    color: var(--link); text-decoration: underline; cursor: pointer;
+  }
+  .chat-input-wrap {
+    padding: 14px 8% 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+    flex-shrink: 0;
+  }
+  .chat-input-inner { max-width: 760px; margin: 0 auto; display: flex; gap: 10px; align-items: flex-end; }
+  .chat-input {
+    flex: 1;
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px; border-radius: 10px;
+    font-family: var(--font); font-size: var(--base-size); line-height: 1.5;
+    resize: none; max-height: 200px; min-height: 44px;
+    outline: none;
+  }
+  .chat-input:focus { border-color: var(--accent-dim); }
+  .chat-send {
+    background: var(--accent); color: var(--bg);
+    border: none; padding: 12px 20px; border-radius: 10px;
+    font-weight: 600; font-size: 11pt; min-height: 44px;
+  }
+  .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Settings pane ──────────────────────────────────────────────────── */
+  .settings-pane { flex-direction: column; width: 100%; overflow-y: auto; }
+  .settings-inner { max-width: 600px; margin: 40px auto; padding: 0 24px; width: 100%; }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 0; border-bottom: 1px solid var(--border);
+  }
+  .settings-label { color: var(--text); font-size: 11pt; }
+  .settings-hint { color: var(--text-faint); font-size: 10pt; margin-top: 4px; }
+  .settings-input {
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 12px; border-radius: 6px;
+    font-family: var(--font); font-size: 10pt; min-width: 360px;
+  }
+
+  /* ── Floating tool panel ───────────────────────────────────────────── */
+  .scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; }
+  .scrim.show { display: block; }
+  .tool-panel {
+    display: none; position: fixed;
+    width: min(560px, 92vw); max-height: min(72vh, 700px);
+    background: var(--bg-elev); border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    z-index: 100;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .tool-panel.show { display: flex; }
+  .tool-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev-2);
+    cursor: grab;
+    user-select: none;
+  }
+  .tool-header.dragging { cursor: grabbing; }
+  .tool-back {
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--text-dim);
+    width: 30px; height: 30px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .tool-back:disabled { opacity: 0.3; cursor: not-allowed; }
+  .tool-title { flex: 1; font-size: 11pt; font-weight: 600; }
+  .tool-title-sub { font-size: 9pt; color: var(--text-faint); font-weight: 400; }
+  .tool-close {
+    background: transparent; border: none; color: var(--text-dim);
+    width: 30px; height: 30px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 14pt;
+  }
+  .tool-close:hover { background: var(--bg); color: var(--text); }
+
+  .tool-buttons {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; padding: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tool-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 14px 8px;
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    font-size: 10pt; font-weight: 500;
+    min-height: 76px;
+  }
+  .tool-btn:hover { border-color: var(--accent-dim); background: var(--bg); }
+  .tool-btn.active { border-color: var(--accent); background: var(--bg); color: var(--accent); }
+  .tool-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  .tool-selection {
+    padding: 10px 14px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 10pt; color: var(--text-dim); font-style: italic;
+    max-height: 70px; overflow-y: auto;
+  }
+  .tool-body {
+    flex: 1; overflow-y: auto;
+    padding: 16px 18px;
+    font-size: 11pt; line-height: 1.65;
+    -webkit-overflow-scrolling: touch;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  .tool-body .scripture-link { color: var(--link); text-decoration: underline; cursor: pointer; }
+  .tool-body .empty-prompt { color: var(--text-faint); text-align: center; padding: 30px 10px; }
+  .tool-body .err { color: var(--danger); }
+
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--border-strong); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* iPad portrait: collapse sidebar to overlay */
+  @media (max-width: 900px) {
+    .sidebar { width: 240px; }
+    .reader-body { padding: 24px 5% 120px; }
+  }
+  @media (max-width: 700px) {
+    .sidebar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); transition: transform 0.2s; }
+    .sidebar.open { transform: translateX(0); }
+    .menu-btn { display: inline-flex; }
+  }
+  .menu-btn {
+    display: none;
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+    align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <button class="menu-btn" id="menuBtn" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="brand">Bible Study</div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-pane="read">Read</button>
+      <button class="tab" data-pane="chat">Chat</button>
+      <button class="tab" data-pane="settings">Settings</button>
+    </div>
+  </div>
+
+  <!-- Read pane -->
+  <div class="pane read-pane active" id="pane-read">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="back-btn" id="sidebarBack" style="display:none;">‹ Books</button>
+        <div class="sidebar-title" id="sidebarTitle">Books</div>
+      </div>
+      <div class="book-list" id="bookList"></div>
+      <div class="chapter-grid" id="chapterGrid" style="display:none;"></div>
+    </aside>
+    <section class="reader">
+      <div class="reader-toolbar">
+        <button class="nav-arrow" id="prevChapter" aria-label="Previous chapter">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="ref-label" id="refLabel">Select a book</div>
+        <button class="nav-arrow" id="nextChapter" aria-label="Next chapter">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="size-stepper">
+          <button class="size-btn" id="sizeDown" aria-label="Smaller text">−</button>
+          <button class="size-btn" id="sizeUp" aria-label="Larger text">+</button>
+        </div>
+        <div class="version-toggle" role="tablist">
+          <button class="version-btn active" data-version="ESV">ESV</button>
+          <button class="version-btn" data-version="NLT">NLT</button>
+        </div>
+      </div>
+      <div class="reader-body" id="readerBody">
+        <div class="empty">Choose a book from the left to begin.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Chat pane -->
+  <div class="pane chat-pane" id="pane-chat">
+    <div class="chat-header">
+      <span class="chat-context-pill" id="chatContextPill">No passage selected</span>
+      <button class="chat-clear" id="chatClear">Clear</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-messages-inner" id="chatMessagesInner">
+        <div class="empty">Ask anything about Scripture. The current chapter will be sent as context.</div>
+      </div>
+    </div>
+    <div class="chat-input-wrap">
+      <div class="chat-input-inner">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask about the passage…"></textarea>
+        <button class="chat-send" id="chatSend">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings pane -->
+  <div class="pane settings-pane" id="pane-settings">
+    <div class="settings-inner">
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Apps Script URL</div>
+          <div class="settings-hint">Web app /exec URL from your Apps Script deployment</div>
+        </div>
+        <input type="text" id="urlInput" class="settings-input" placeholder="https://script.google.com/.../exec">
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Default version</div>
+          <div class="settings-hint">Used when opening a new chapter</div>
+        </div>
+        <div class="version-toggle">
+          <button class="version-btn active" data-default-version="ESV">ESV</button>
+          <button class="version-btn" data-default-version="NLT">NLT</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-label">Text size</div>
+          <div class="settings-hint">Body text size in points</div>
+        </div>
+        <div class="size-stepper">
+          <button class="size-btn" id="sizeDown2">−</button>
+          <span id="sizeDisplay" style="padding: 0 12px;">12pt</span>
+          <button class="size-btn" id="sizeUp2">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating tool panel + scrim -->
+<div class="scrim" id="scrim"></div>
+<div class="tool-panel" id="toolPanel" role="dialog">
+  <div class="tool-header" id="toolHeader">
+    <button class="tool-back" id="toolBack" disabled aria-label="Back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="tool-title">Study tools <span class="tool-title-sub" id="toolSub"></span></div>
+    <button class="tool-close" id="toolClose" aria-label="Close">×</button>
+  </div>
+  <div class="tool-buttons">
+    <button class="tool-btn" data-tool="related">
+      <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
+      <span>Related</span>
+    </button>
+    <button class="tool-btn" data-tool="commentary">
+      <svg viewBox="0 0 24 24"><path d="M2 4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v17a1 1 0 0 1-1.5.87L4 19l-2 1.5z"/><path d="M22 4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v17a1 1 0 0 0 1.5.87L20 19l2 1.5z"/></svg>
+      <span>Commentary</span>
+    </button>
+    <button class="tool-btn" data-tool="application">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+      <span>Application</span>
+    </button>
+    <button class="tool-btn" data-tool="dictionary">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M10 7l2.5 6L15 7"/><line x1="11" y1="11" x2="14" y2="11"/></svg>
+      <span>Dictionary</span>
+    </button>
+  </div>
+  <div class="tool-selection" id="toolSelection"></div>
+  <div class="tool-body" id="toolBody">
+    <div class="empty-prompt">Pick a tool above to study the selected text.</div>
+  </div>
+</div>
+
+<script>
+// ── Config & books data ──────────────────────────────────────────────────────
+const STORAGE = {
+  url: 'bibleapp.url',
+  version: 'bibleapp.version',
+  size: 'bibleapp.size',
+  book: 'bibleapp.book',
+  chapter: 'bibleapp.chapter',
+  chat: 'bibleapp.chat',
+};
+const DEFAULT_URL = ''; // Paste your Apps Script /exec URL here, or set in Settings.
+
+const BOOKS = [
+  { section: 'Old Testament', books: [
+    ['Genesis', 50], ['Exodus', 40], ['Leviticus', 27], ['Numbers', 36], ['Deuteronomy', 34],
+    ['Joshua', 24], ['Judges', 21], ['Ruth', 4], ['1 Samuel', 31], ['2 Samuel', 24],
+    ['1 Kings', 22], ['2 Kings', 25], ['1 Chronicles', 29], ['2 Chronicles', 36],
+    ['Ezra', 10], ['Nehemiah', 13], ['Esther', 10], ['Job', 42], ['Psalms', 150],
+    ['Proverbs', 31], ['Ecclesiastes', 12], ['Song of Solomon', 8],
+    ['Isaiah', 66], ['Jeremiah', 52], ['Lamentations', 5], ['Ezekiel', 48], ['Daniel', 12],
+    ['Hosea', 14], ['Joel', 3], ['Amos', 9], ['Obadiah', 1], ['Jonah', 4], ['Micah', 7],
+    ['Nahum', 3], ['Habakkuk', 3], ['Zephaniah', 3], ['Haggai', 2], ['Zechariah', 14], ['Malachi', 4],
+  ]},
+  { section: 'New Testament', books: [
+    ['Matthew', 28], ['Mark', 16], ['Luke', 24], ['John', 21], ['Acts', 28],
+    ['Romans', 16], ['1 Corinthians', 16], ['2 Corinthians', 13],
+    ['Galatians', 6], ['Ephesians', 6], ['Philippians', 4], ['Colossians', 4],
+    ['1 Thessalonians', 5], ['2 Thessalonians', 3],
+    ['1 Timothy', 6], ['2 Timothy', 4], ['Titus', 3], ['Philemon', 1],
+    ['Hebrews', 13], ['James', 5], ['1 Peter', 5], ['2 Peter', 3],
+    ['1 John', 5], ['2 John', 1], ['3 John', 1], ['Jude', 1], ['Revelation', 22],
+  ]},
+];
+const FLAT_BOOKS = BOOKS.flatMap(s => s.books); // [name, chapterCount]
+const CHAPTER_COUNT = Object.fromEntries(FLAT_BOOKS);
+function bookIndex(name) { return FLAT_BOOKS.findIndex(b => b[0] === name); }
+
+// ── State ────────────────────────────────────────────────────────────────────
+const state = {
+  url: localStorage.getItem(STORAGE.url) || DEFAULT_URL,
+  version: localStorage.getItem(STORAGE.version) || 'ESV',
+  size: parseInt(localStorage.getItem(STORAGE.size) || '12', 10),
+  book: localStorage.getItem(STORAGE.book) || '',
+  chapter: parseInt(localStorage.getItem(STORAGE.chapter) || '0', 10) || 0,
+  chatMessages: JSON.parse(localStorage.getItem(STORAGE.chat) || '[]'),
+  // tool panel
+  selection: '',
+  selectionRef: '',
+  toolStack: [], // {tool, ref, selection, html, title}
+};
+
+// ── DOM helpers ──────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function setSize(n) {
+  state.size = Math.max(9, Math.min(22, n));
+  document.documentElement.style.setProperty('--base-size', state.size + 'pt');
+  localStorage.setItem(STORAGE.size, String(state.size));
+  if ($('sizeDisplay')) $('sizeDisplay').textContent = state.size + 'pt';
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('pane-' + btn.dataset.pane).classList.add('active');
+    if (btn.dataset.pane === 'chat') updateChatContext();
+  });
+});
+
+// ── Sidebar: books & chapters ────────────────────────────────────────────────
+function renderBookList() {
+  const root = $('bookList');
+  root.innerHTML = '';
+  BOOKS.forEach(section => {
+    const label = document.createElement('div');
+    label.className = 'book-section-label';
+    label.textContent = section.section;
+    root.appendChild(label);
+    section.books.forEach(([name]) => {
+      const btn = document.createElement('button');
+      btn.className = 'book-item';
+      btn.textContent = name;
+      if (name === state.book) btn.classList.add('active');
+      btn.addEventListener('click', () => openBook(name));
+      root.appendChild(btn);
+    });
+  });
+}
+function openBook(name) {
+  state.book = name;
+  localStorage.setItem(STORAGE.book, name);
+  document.querySelectorAll('.book-item').forEach(b => b.classList.toggle('active', b.textContent === name));
+  $('sidebarTitle').textContent = name;
+  $('sidebarBack').style.display = 'inline-block';
+  $('bookList').style.display = 'none';
+  $('chapterGrid').style.display = 'grid';
+  renderChapterGrid();
+}
+function renderChapterGrid() {
+  const grid = $('chapterGrid');
+  grid.innerHTML = '';
+  const count = CHAPTER_COUNT[state.book] || 0;
+  for (let i = 1; i <= count; i++) {
+    const b = document.createElement('button');
+    b.className = 'chapter-btn';
+    b.textContent = i;
+    if (i === state.chapter) b.classList.add('active');
+    b.addEventListener('click', () => loadChapter(state.book, i));
+    grid.appendChild(b);
+  }
+}
+$('sidebarBack').addEventListener('click', () => {
+  $('sidebarTitle').textContent = 'Books';
+  $('sidebarBack').style.display = 'none';
+  $('chapterGrid').style.display = 'none';
+  $('bookList').style.display = 'block';
+});
+$('menuBtn').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+
+// ── Chapter loading ──────────────────────────────────────────────────────────
+async function loadChapter(book, chapter) {
+  state.book = book;
+  state.chapter = chapter;
+  localStorage.setItem(STORAGE.book, book);
+  localStorage.setItem(STORAGE.chapter, String(chapter));
+  document.querySelectorAll('.chapter-btn').forEach((b, i) => b.classList.toggle('active', (i + 1) === chapter));
+
+  const ref = book + ' ' + chapter;
+  $('refLabel').textContent = ref;
+  updateNavArrows();
+  updateChatContext();
+
+  const body = $('readerBody');
+  body.innerHTML = '<div class="loading"><span class="spinner"></span> Loading ' + escapeHtml(ref) + '…</div>';
+  try {
+    const data = await fetchPassage(ref, state.version);
+    if (data.error) {
+      body.innerHTML = '<div class="empty">Error: ' + escapeHtml(data.error) + '</div>';
+      return;
+    }
+    body.innerHTML = '<div class="passage">' + (data.html || '') + '</div>';
+    body.scrollTop = 0;
+  } catch (err) {
+    body.innerHTML = '<div class="empty">Failed to load: ' + escapeHtml(String(err.message || err)) + '</div>';
+  }
+  // close sidebar on small screens after selecting
+  if (window.innerWidth <= 700) $('sidebar').classList.remove('open');
+}
+
+function updateNavArrows() {
+  const bi = bookIndex(state.book);
+  $('prevChapter').disabled = !(state.chapter > 1 || bi > 0);
+  $('nextChapter').disabled = !(state.chapter < (CHAPTER_COUNT[state.book] || 0) || bi < FLAT_BOOKS.length - 1);
+}
+$('prevChapter').addEventListener('click', () => {
+  if (state.chapter > 1) { loadChapter(state.book, state.chapter - 1); return; }
+  const bi = bookIndex(state.book);
+  if (bi > 0) {
+    const prev = FLAT_BOOKS[bi - 1];
+    openBookSilent(prev[0]);
+    loadChapter(prev[0], prev[1]);
+  }
+});
+$('nextChapter').addEventListener('click', () => {
+  if (state.chapter < (CHAPTER_COUNT[state.book] || 0)) { loadChapter(state.book, state.chapter + 1); return; }
+  const bi = bookIndex(state.book);
+  if (bi < FLAT_BOOKS.length - 1) {
+    const next = FLAT_BOOKS[bi + 1];
+    openBookSilent(next[0]);
+    loadChapter(next[0], 1);
+  }
+});
+function openBookSilent(name) {
+  state.book = name;
+  localStorage.setItem(STORAGE.book, name);
+  $('sidebarTitle').textContent = name;
+  $('sidebarBack').style.display = 'inline-block';
+  $('bookList').style.display = 'none';
+  $('chapterGrid').style.display = 'grid';
+  renderChapterGrid();
+}
+
+// ── Version toggle ───────────────────────────────────────────────────────────
+document.querySelectorAll('.version-btn[data-version]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.version-btn[data-version]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.version = btn.dataset.version;
+    localStorage.setItem(STORAGE.version, state.version);
+    if (state.book && state.chapter) loadChapter(state.book, state.chapter);
+  });
+});
+
+// ── Size stepper ─────────────────────────────────────────────────────────────
+['sizeUp', 'sizeUp2'].forEach(id => $(id) && $(id).addEventListener('click', () => setSize(state.size + 1)));
+['sizeDown', 'sizeDown2'].forEach(id => $(id) && $(id).addEventListener('click', () => setSize(state.size - 1)));
+
+// ── API calls ────────────────────────────────────────────────────────────────
+function apiUrl() {
+  if (!state.url) throw new Error('Apps Script URL not set. Open Settings.');
+  return state.url;
+}
+async function fetchPassage(ref, version) {
+  const url = apiUrl() + '?action=text&ref=' + encodeURIComponent(ref) + '&version=' + encodeURIComponent(version);
+  const res = await fetch(url);
+  return res.json();
+}
+async function callStudy(tool, ref, selection, version) {
+  // Apps Script web apps require simple requests to avoid CORS preflight.
+  // Use text/plain content type with a JSON body.
+  const res = await fetch(apiUrl(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'study', tool, ref, selection, version }),
+  });
+  return res.json();
+}
+async function callChat(messages, ref) {
+  const res = await fetch(apiUrl(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'chat', messages, ref }),
+  });
+  return res.json();
+}
+
+// ── Selection → tool panel ───────────────────────────────────────────────────
+const panel = $('toolPanel');
+const scrim = $('scrim');
+
+document.addEventListener('mouseup', handleSelection);
+document.addEventListener('touchend', () => setTimeout(handleSelection, 50));
+
+function handleSelection(e) {
+  // Ignore selections inside the panel itself or chat
+  if (e && e.target && (panel.contains(e.target) || $('pane-chat').contains(e.target))) return;
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return;
+  const text = sel.toString().trim();
+  if (text.length < 2) return;
+  // Only trigger if selection is inside the reader body
+  const anchorNode = sel.anchorNode;
+  if (!anchorNode || !$('readerBody').contains(anchorNode.nodeType === 1 ? anchorNode : anchorNode.parentNode)) return;
+
+  state.selection = text;
+  state.selectionRef = (state.book && state.chapter) ? (state.book + ' ' + state.chapter) : '';
+  openToolPanel(sel);
+}
+
+function openToolPanel(sel) {
+  // Position near selection
+  const rect = sel.getRangeAt(0).getBoundingClientRect();
+  positionPanel(rect);
+  scrim.classList.add('show');
+  panel.classList.add('show');
+  state.toolStack = [];
+  updateToolPanelHeader();
+  $('toolSelection').textContent = '"' + state.selection + '"';
+  $('toolBody').innerHTML = '<div class="empty-prompt">Pick a tool above to study the selected text.</div>';
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+}
+function positionPanel(rect) {
+  const pw = Math.min(560, window.innerWidth * 0.92);
+  const ph = Math.min(window.innerHeight * 0.72, 700);
+  let left = rect.left + rect.width / 2 - pw / 2;
+  let top = rect.bottom + 12;
+  if (top + ph > window.innerHeight - 12) top = Math.max(12, rect.top - ph - 12);
+  left = Math.max(12, Math.min(window.innerWidth - pw - 12, left));
+  top = Math.max(12, top);
+  panel.style.left = left + 'px';
+  panel.style.top = top + 'px';
+}
+
+function closeToolPanel() {
+  panel.classList.remove('show');
+  scrim.classList.remove('show');
+  window.getSelection().removeAllRanges();
+  state.toolStack = [];
+}
+$('toolClose').addEventListener('click', closeToolPanel);
+scrim.addEventListener('click', closeToolPanel);
+
+// Tool buttons
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tool = btn.dataset.tool;
+    await runTool(tool, state.selection, state.selectionRef, /*push*/ false);
+  });
+});
+
+async function runTool(tool, selection, ref, push) {
+  const titleMap = { related: 'Related passages', commentary: 'Commentary', application: 'Application', dictionary: 'Dictionary' };
+  const body = $('toolBody');
+  body.innerHTML = '<div class="empty-prompt"><span class="spinner"></span> ' + titleMap[tool] + '…</div>';
+  // Update header
+  $('toolSub').textContent = '— ' + titleMap[tool] + (ref ? ' (' + ref + ')' : '');
+
+  try {
+    const data = await callStudy(tool, ref, selection, state.version);
+    if (data.error) {
+      body.innerHTML = '<div class="err">Error: ' + escapeHtml(data.error) + '</div>';
+      return;
+    }
+    const html = renderWithRefs(data.answer || '');
+    if (push) {
+      // we'll push the previous frame before navigating; not used here
+    }
+    // Save frame
+    state.toolStack.push({ tool, ref, selection, html, title: titleMap[tool] });
+    body.innerHTML = html;
+    body.scrollTop = 0;
+    updateToolPanelHeader();
+  } catch (err) {
+    body.innerHTML = '<div class="err">Failed: ' + escapeHtml(String(err.message || err)) + '</div>';
+  }
+}
+
+function updateToolPanelHeader() {
+  $('toolBack').disabled = state.toolStack.length <= 1;
+}
+$('toolBack').addEventListener('click', () => {
+  if (state.toolStack.length <= 1) return;
+  state.toolStack.pop();
+  const top = state.toolStack[state.toolStack.length - 1];
+  $('toolSelection').textContent = '"' + top.selection + '"';
+  $('toolSub').textContent = '— ' + top.title + (top.ref ? ' (' + top.ref + ')' : '');
+  $('toolBody').innerHTML = top.html;
+  $('toolBody').scrollTop = 0;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === top.tool));
+  updateToolPanelHeader();
+});
+
+// Drag the panel header
+(() => {
+  const header = $('toolHeader');
+  let dragging = false, dx = 0, dy = 0;
+  const start = (clientX, clientY) => {
+    dragging = true; header.classList.add('dragging');
+    const r = panel.getBoundingClientRect();
+    dx = clientX - r.left; dy = clientY - r.top;
+  };
+  const move = (clientX, clientY) => {
+    if (!dragging) return;
+    const pw = panel.offsetWidth, ph = panel.offsetHeight;
+    let l = clientX - dx, t = clientY - dy;
+    l = Math.max(0, Math.min(window.innerWidth - pw, l));
+    t = Math.max(0, Math.min(window.innerHeight - ph, t));
+    panel.style.left = l + 'px'; panel.style.top = t + 'px';
+  };
+  const end = () => { dragging = false; header.classList.remove('dragging'); };
+  header.addEventListener('mousedown', e => { if (e.target.closest('button')) return; start(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+  document.addEventListener('mouseup', end);
+  header.addEventListener('touchstart', e => { if (e.target.closest('button')) return; const t = e.touches[0]; start(t.clientX, t.clientY); }, { passive: true });
+  document.addEventListener('touchmove', e => { if (!dragging) return; const t = e.touches[0]; move(t.clientX, t.clientY); }, { passive: true });
+  document.addEventListener('touchend', end);
+})();
+
+// ── Scripture links: parse [[Book C:V]] in agent output and make them clickable
+// Clicking a link inside the tool panel: load that passage into the panel as a new frame.
+function renderWithRefs(text) {
+  // Escape first, then replace [[refs]]
+  let html = escapeHtml(text);
+  html = html.replace(/\[\[([^\]]+)\]\]/g, (m, ref) => {
+    const safe = escapeHtml(ref);
+    return '<a href="#" class="scripture-link" data-ref="' + safe + '">' + safe + '</a>';
+  });
+  return html;
+}
+// Delegate clicks on scripture-links within the tool panel
+$('toolBody').addEventListener('click', async (e) => {
+  const a = e.target.closest('.scripture-link');
+  if (!a) return;
+  e.preventDefault();
+  const ref = a.dataset.ref;
+  await loadRefInPanel(ref);
+});
+
+async function loadRefInPanel(ref) {
+  const body = $('toolBody');
+  body.innerHTML = '<div class="empty-prompt"><span class="spinner"></span> Loading ' + escapeHtml(ref) + '…</div>';
+  $('toolSub').textContent = '— Passage (' + ref + ')';
+  try {
+    const data = await fetchPassage(ref, state.version);
+    if (data.error) {
+      body.innerHTML = '<div class="err">Error: ' + escapeHtml(data.error) + '</div>';
+      return;
+    }
+    const html = '<div class="passage">' + (data.html || '') + '</div>';
+    state.toolStack.push({ tool: 'passage', ref, selection: ref, html, title: 'Passage' });
+    body.innerHTML = html;
+    body.scrollTop = 0;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    updateToolPanelHeader();
+  } catch (err) {
+    body.innerHTML = '<div class="err">Failed: ' + escapeHtml(String(err.message || err)) + '</div>';
+  }
+}
+
+// ── Chat ─────────────────────────────────────────────────────────────────────
+function updateChatContext() {
+  const ref = (state.book && state.chapter) ? (state.book + ' ' + state.chapter) : '';
+  $('chatContextPill').textContent = ref ? 'Context: ' + ref : 'No passage selected';
+}
+function renderChat() {
+  const inner = $('chatMessagesInner');
+  if (!state.chatMessages.length) {
+    inner.innerHTML = '<div class="empty">Ask anything about Scripture. The current chapter will be sent as context.</div>';
+    return;
+  }
+  inner.innerHTML = state.chatMessages.map(m => {
+    const cls = m.role === 'user' ? 'msg user' : 'msg assistant';
+    const content = m.role === 'assistant' ? renderWithRefs(m.content) : escapeHtml(m.content);
+    return '<div class="' + cls + '"><div class="msg-bubble">' + content + '</div></div>';
+  }).join('');
+  // Scripture link clicks in chat → switch to read pane
+  inner.querySelectorAll('.scripture-link').forEach(a => {
+    a.addEventListener('click', (e) => { e.preventDefault(); jumpToRef(a.dataset.ref); });
+  });
+  $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
+}
+function jumpToRef(ref) {
+  // Parse "Book C[:V[-V]]" — we navigate to Book Chapter
+  const m = ref.match(/^(\d?\s?[A-Za-z][A-Za-z ]*?)\s+(\d+)(?::\d+)?/);
+  if (!m) return;
+  const book = m[1].trim();
+  const chap = parseInt(m[2], 10);
+  if (!CHAPTER_COUNT[book]) return;
+  document.querySelector('.tab[data-pane="read"]').click();
+  openBookSilent(book);
+  loadChapter(book, chap);
+}
+$('chatInput').addEventListener('input', () => {
+  const t = $('chatInput');
+  t.style.height = 'auto';
+  t.style.height = Math.min(200, t.scrollHeight) + 'px';
+});
+$('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+$('chatSend').addEventListener('click', sendChat);
+$('chatClear').addEventListener('click', () => {
+  state.chatMessages = [];
+  localStorage.setItem(STORAGE.chat, '[]');
+  renderChat();
+});
+
+async function sendChat() {
+  const input = $('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  state.chatMessages.push({ role: 'user', content: text });
+  input.value = ''; input.style.height = 'auto';
+  localStorage.setItem(STORAGE.chat, JSON.stringify(state.chatMessages));
+  renderChat();
+
+  // Add a placeholder assistant turn
+  state.chatMessages.push({ role: 'assistant', content: '…' });
+  renderChat();
+  $('chatSend').disabled = true;
+
+  try {
+    const ref = (state.book && state.chapter) ? (state.book + ' ' + state.chapter) : '';
+    // Send all turns except the placeholder
+    const send = state.chatMessages.slice(0, -1);
+    const data = await callChat(send, ref);
+    state.chatMessages.pop(); // remove placeholder
+    if (data.error) {
+      state.chatMessages.push({ role: 'assistant', content: 'Error: ' + data.error });
+    } else {
+      state.chatMessages.push({ role: 'assistant', content: data.answer || '' });
+    }
+  } catch (err) {
+    state.chatMessages.pop();
+    state.chatMessages.push({ role: 'assistant', content: 'Failed: ' + (err.message || err) });
+  }
+  localStorage.setItem(STORAGE.chat, JSON.stringify(state.chatMessages));
+  $('chatSend').disabled = false;
+  renderChat();
+}
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+$('urlInput').value = state.url;
+$('urlInput').addEventListener('change', () => {
+  state.url = $('urlInput').value.trim();
+  localStorage.setItem(STORAGE.url, state.url);
+});
+document.querySelectorAll('.version-btn[data-default-version]').forEach(btn => {
+  if (btn.dataset.defaultVersion === state.version) btn.classList.add('active'); else btn.classList.remove('active');
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.version-btn[data-default-version]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.version = btn.dataset.defaultVersion;
+    localStorage.setItem(STORAGE.version, state.version);
+    // sync the reader toggle
+    document.querySelectorAll('.version-btn[data-version]').forEach(b => b.classList.toggle('active', b.dataset.version === state.version));
+    if (state.book && state.chapter) loadChapter(state.book, state.chapter);
+  });
+});
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+(function init() {
+  setSize(state.size);
+  renderBookList();
+  // sync reader version toggle to saved state
+  document.querySelectorAll('.version-btn[data-version]').forEach(b => b.classList.toggle('active', b.dataset.version === state.version));
+  if (state.book) {
+    openBookSilent(state.book);
+    if (state.chapter) loadChapter(state.book, state.chapter);
+  }
+  renderChat();
+  updateChatContext();
+})();
+</script>
+</body>
+</html>
