@@ -612,7 +612,47 @@ const STORAGE = {
   book: 'bibleapp.book',
   chapter: 'bibleapp.chapter',
   chat: 'bibleapp.chat',
+  cache: 'bibleapp.passageCache',
 };
+// LRU cache for recently-viewed chapters. Capped at PASSAGE_CACHE_MAX entries
+// to keep total stored verses well under licensing limits (~500). Entries are
+// keyed by `${version}:${ref}` and stored in localStorage so they survive
+// reloads. The Apps Script already caches 6h server-side; this skips even
+// that round trip for recent chapters.
+const PASSAGE_CACHE_MAX = 20;
+const PASSAGE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function loadPassageCache() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.cache) || '{}'); }
+  catch (_) { return {}; }
+}
+function savePassageCache(cache) {
+  try { localStorage.setItem(STORAGE.cache, JSON.stringify(cache)); }
+  catch (_) { /* quota — silently ignore */ }
+}
+function passageCacheGet(version, ref) {
+  const cache = loadPassageCache();
+  const key = version + ':' + ref;
+  const entry = cache[key];
+  if (!entry) return null;
+  if (Date.now() - entry.t > PASSAGE_CACHE_TTL_MS) return null;
+  // Update access time (LRU bump) without rewriting the whole cache hot path.
+  entry.t = Date.now();
+  cache[key] = entry;
+  savePassageCache(cache);
+  return entry.html;
+}
+function passageCacheSet(version, ref, html) {
+  const cache = loadPassageCache();
+  const key = version + ':' + ref;
+  cache[key] = { html, t: Date.now() };
+  const keys = Object.keys(cache);
+  if (keys.length > PASSAGE_CACHE_MAX) {
+    keys.sort((a, b) => cache[a].t - cache[b].t);
+    while (keys.length > PASSAGE_CACHE_MAX) delete cache[keys.shift()];
+  }
+  savePassageCache(cache);
+}
 const DEFAULT_URL = ''; // Paste your Apps Script /exec URL here, or set in Settings.
 
 const BOOKS = [
@@ -951,9 +991,13 @@ function apiUrl() {
   return state.url;
 }
 async function fetchPassage(ref, version) {
+  const cached = passageCacheGet(version, ref);
+  if (cached) return { html: cached, version, ref, fromCache: true };
   const url = apiUrl() + '?action=text&ref=' + encodeURIComponent(ref) + '&version=' + encodeURIComponent(version);
   const res = await fetch(url);
-  return res.json();
+  const data = await res.json();
+  if (data && data.html && !data.error) passageCacheSet(version, ref, data.html);
+  return data;
 }
 async function callStudy(tool, ref, selection, version) {
   // Apps Script web apps require simple requests to avoid CORS preflight.
