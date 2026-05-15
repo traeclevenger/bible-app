@@ -406,9 +406,12 @@
   .tool-close:hover { background: var(--bg); color: var(--text); }
 
   .tool-buttons {
-    display: grid; grid-template-columns: repeat(4, 1fr);
+    display: grid; grid-template-columns: repeat(5, 1fr);
     gap: 8px; padding: 14px;
     border-bottom: 1px solid var(--border);
+  }
+  @media (max-width: 560px) {
+    .tool-buttons { grid-template-columns: repeat(3, 1fr); }
   }
   .tool-btn {
     display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -589,12 +592,16 @@
       <span>Commentary</span>
     </button>
     <button class="tool-btn" data-tool="application">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.7 2.7 0 0 0 16.5 4l-1 1-1-1A2.7 2.7 0 0 0 9.7 5.8c0 1.1.8 2 1.5 2.7L15 12Z"/></svg>
       <span>Application</span>
     </button>
     <button class="tool-btn" data-tool="dictionary">
-      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M10 7l2.5 6L15 7"/><line x1="11" y1="11" x2="14" y2="11"/></svg>
+      <svg viewBox="0 0 24 24"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
       <span>Dictionary</span>
+    </button>
+    <button class="tool-btn" data-tool="discuss">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Discuss</span>
     </button>
   </div>
   <div class="tool-selection" id="toolSelection"></div>
@@ -1077,12 +1084,31 @@ scrim.addEventListener('click', closeToolPanel);
 // Tool buttons
 document.querySelectorAll('.tool-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
+    const tool = btn.dataset.tool;
+    if (tool === 'discuss') {
+      sendSelectionToChat(state.selection, state.selectionRef);
+      return;
+    }
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const tool = btn.dataset.tool;
     await runTool(tool, state.selection, state.selectionRef, /*push*/ false);
   });
 });
+
+// Close the tool panel, switch to the Chat tab, and seed the conversation
+// with the selected verse so Sonnet has it as context.
+function sendSelectionToChat(selection, ref) {
+  if (!selection) return;
+  closeToolPanel();
+  document.querySelector('.tab[data-pane="chat"]').click();
+  const refLabel = ref || 'the current passage';
+  const message = 'This is what I\'m reading: ' + refLabel + '\n\n"' + selection + '"';
+  const input = $('chatInput');
+  input.value = message;
+  input.style.height = 'auto';
+  input.style.height = Math.min(200, input.scrollHeight) + 'px';
+  sendChat();
+}
 
 async function runTool(tool, selection, ref, push) {
   const titleMap = { related: 'Related passages', commentary: 'Commentary', application: 'Application', dictionary: 'Dictionary' };
