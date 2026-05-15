@@ -197,10 +197,15 @@
     float: left; line-height: 1; margin: 0.1em 0.2em 0 0;
   }
   /* NLT section subheadings (e.g. "Do What Is Good") */
-  .passage .subhead, .passage .body-ch-hd, .passage .subheading {
+  .passage .subhead, .passage .subheading {
     font-size: 1.15em !important; font-weight: 600; font-style: normal !important;
     color: var(--text-dim); letter-spacing: 0.02em;
     margin: 1.6em 0 0.6em; display: block;
+  }
+  /* NLT wraps the first paragraph of each chapter in .body-ch-hd — render as normal body */
+  .passage .body-ch-hd {
+    font-weight: normal; color: var(--text);
+    font-size: inherit; font-style: normal;
   }
   /* NLT verse numbers */
   .passage .vn, .passage .v-num, .passage .verse {
