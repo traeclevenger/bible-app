@@ -156,18 +156,23 @@
     font-size: var(--base-size);
     line-height: 1.85;
   }
+  /* Force Arial everywhere inside the passage — both APIs inject their own fonts. */
+  .passage, .passage * {
+    font-family: var(--font) !important;
+    font-size: inherit;
+  }
   /* ESV HTML styling */
   .passage h2, .passage h3 {
-    font-size: 1.15em; font-weight: 600; color: var(--text-dim);
+    font-size: 1.15em !important; font-weight: 600; color: var(--text-dim);
     margin: 1.6em 0 0.6em; letter-spacing: 0.02em;
   }
   .passage p { margin: 0.6em 0; }
   .passage .chapter-num {
-    font-size: 1.8em; font-weight: 700; color: var(--accent);
+    font-size: 1.8em !important; font-weight: 700; color: var(--accent);
     float: left; line-height: 1; margin: 0.1em 0.2em 0 0;
   }
   .passage .verse-num {
-    font-size: 0.7em; color: var(--accent-dim);
+    font-size: 0.7em !important; color: var(--accent-dim);
     font-weight: 600; vertical-align: super;
     margin-right: 2px; padding-right: 1px;
   }
@@ -175,11 +180,71 @@
   .passage .small-caps { font-variant: small-caps; }
   .passage .footnote { display: none; }
   .passage .copyright, .passage .copy {
-    margin-top: 2em; font-size: 0.85em; color: var(--text-faint); font-style: italic;
+    margin-top: 2em; font-size: 0.85em !important; color: var(--text-faint); font-style: italic;
   }
-  /* NLT can render heavy inline styling; soften it */
+  /* Strip inline color/background NLT injects */
   .passage [style*="color"] { color: inherit !important; }
   .passage [style*="background"] { background: transparent !important; }
+
+  /* ── NLT-specific styling ──────────────────────────────────────────── */
+  /* NLT passage header (e.g. "Titus 3:1-15, NLT") */
+  .passage .bk_ch_vs_header, .passage .bibleref {
+    display: none; /* redundant with our own refLabel above */
+  }
+  /* NLT chapter number block — "3" appearing alone */
+  .passage .chapter-number, .passage .cw_ch {
+    font-size: 1.8em !important; font-weight: 700; color: var(--accent);
+    float: left; line-height: 1; margin: 0.1em 0.2em 0 0;
+  }
+  /* NLT section subheadings (e.g. "Do What Is Good") */
+  .passage .subhead, .passage .body-ch-hd, .passage .subheading {
+    font-size: 1.15em !important; font-weight: 600; font-style: normal !important;
+    color: var(--text-dim); letter-spacing: 0.02em;
+    margin: 1.6em 0 0.6em; display: block;
+  }
+  /* NLT verse numbers */
+  .passage .vn, .passage .v-num, .passage .verse {
+    font-size: 0.7em !important; color: var(--accent-dim);
+    font-weight: 600; vertical-align: super;
+    margin-right: 2px;
+  }
+  /* NLT translator notes — these are the "little white boxes".
+     Float them right, dark background, dim italic text. */
+  .passage .tn, .passage tn,
+  .passage .footnote-text, .passage .fn,
+  .passage .ref, .passage .a-fn {
+    display: block;
+    float: right;
+    clear: right;
+    width: 200px;
+    max-width: 38%;
+    margin: 0.3em 0 0.6em 1em;
+    padding: 8px 10px;
+    background: var(--bg-elev-2) !important;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-dim);
+    border-radius: 6px;
+    color: var(--text-dim) !important;
+    font-size: 0.82em !important;
+    font-style: italic;
+    line-height: 1.5;
+  }
+  .passage .tn i, .passage .tn em,
+  .passage tn i, .passage tn em { font-style: normal; color: var(--text); }
+  /* Inline note anchors (the little superscript marks linking to notes) */
+  .passage .a-tn, .passage a.tn-link, .passage sup.tn {
+    color: var(--accent-dim) !important;
+    text-decoration: none;
+    font-size: 0.7em !important;
+    vertical-align: super;
+  }
+  /* NLT poetry blocks */
+  .passage .poet1, .passage .poetry-1, .passage .q1 { margin-left: 1em; }
+  .passage .poet2, .passage .poetry-2, .passage .q2 { margin-left: 2em; }
+  /* Red letters (words of Christ) — keep readable in dark mode */
+  .passage .red, .passage .woj { color: #e89a8e !important; }
+  /* Strip any remaining floats from elements we don't recognize as notes */
+  .passage > * { clear: both; }
 
   .loading, .empty {
     text-align: center; color: var(--text-faint);
