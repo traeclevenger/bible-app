@@ -200,8 +200,8 @@
   .passage .copyright, .passage .copy {
     margin-top: 2em; font-size: 0.85em !important; color: var(--text-faint); font-style: italic;
   }
-  /* Strip inline color/background NLT injects — exclude sup (verse numbers) */
-  .passage :not(sup)[style*="color"] { color: inherit !important; }
+  /* Strip inline color/background NLT injects — exclude verse number elements */
+  .passage :not(sup):not(.v):not(.vn):not(.v-num):not(.verse-num)[style*="color"] { color: inherit !important; }
   .passage [style*="background"] { background: transparent !important; }
 
   /* ── NLT-specific styling ──────────────────────────────────────────── */
@@ -881,15 +881,18 @@ function postProcessPassage(container) {
   markVerseNumbers(container);
 }
 
-// Ensure every verse-number element is styled amber. ESV sometimes returns
-// bare <sup> elements with no class (or with inline color styles that override
-// CSS). We add the .verse-num class and strip any inline color so our CSS wins.
+// Force amber color on every verse-number element via inline style so nothing
+// in the cascade can override it. ESV returns inline verse numbers as bare
+// <sup> or <sup class="v"> elements, sometimes with inline color styles.
 function markVerseNumbers(container) {
-  const passage = container.querySelector ? (container.querySelector('.passage') || container) : container;
-  passage.querySelectorAll('sup, .v, .vn, .v-num').forEach(el => {
+  const passage = container.querySelector('.passage') || container;
+  passage.querySelectorAll('sup, .v, .vn, .v-num, .verse-num').forEach(el => {
     if (/^\d+$/.test((el.textContent || '').trim())) {
       el.classList.add('verse-num');
-      el.style.removeProperty('color'); // remove inline color so CSS rule applies cleanly
+      el.style.color        = '#8a6a4a';
+      el.style.fontSize     = '0.7em';
+      el.style.fontWeight   = '600';
+      el.style.verticalAlign = 'super';
     }
   });
 }
