@@ -200,8 +200,8 @@
   .passage .copyright, .passage .copy {
     margin-top: 2em; font-size: 0.85em !important; color: var(--text-faint); font-style: italic;
   }
-  /* Strip inline color/background NLT injects */
-  .passage [style*="color"] { color: inherit !important; }
+  /* Strip inline color/background NLT injects — exclude sup (verse numbers) */
+  .passage :not(sup)[style*="color"] { color: inherit !important; }
   .passage [style*="background"] { background: transparent !important; }
 
   /* ── NLT-specific styling ──────────────────────────────────────────── */
@@ -878,6 +878,20 @@ function postProcessPassage(container) {
   mergeDashContinuations(container);
   stripLeadingWhitespace(container);
   alignNotes(container);
+  markVerseNumbers(container);
+}
+
+// Ensure every verse-number element is styled amber. ESV sometimes returns
+// bare <sup> elements with no class (or with inline color styles that override
+// CSS). We add the .verse-num class and strip any inline color so our CSS wins.
+function markVerseNumbers(container) {
+  const passage = container.querySelector ? (container.querySelector('.passage') || container) : container;
+  passage.querySelectorAll('sup, .v, .vn, .v-num').forEach(el => {
+    if (/^\d+$/.test((el.textContent || '').trim())) {
+      el.classList.add('verse-num');
+      el.style.removeProperty('color'); // remove inline color so CSS rule applies cleanly
+    }
+  });
 }
 
 // NLT prefixes some paragraphs with a non-breaking space (or regular space)
