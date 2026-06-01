@@ -204,17 +204,12 @@ function buildDictionaryPrompt(selection, ref, version) {
 
 function handleChat(body) {
   const messages = body.messages || [];
-  const ref = String(body.ref || '').trim();
-  let passageText = '';
-  try { if (ref) passageText = fetchEsvPlainText(ref); } catch (_) {}
 
   const wantsDetail = wantsMoreDetail(messages);
   const chosenModel = wantsDetail ? SONNET_MODEL : HAIKU_MODEL;
 
   const system =
     "You are a knowledgeable, conservative Bible study assistant. " +
-    (ref ? "The user is currently reading " + ref + ".\n\nPassage text (ESV):\n" + (passageText || '(unavailable)') + "\n\n"
-         : "The user has not selected a passage.\n\n") +
     "STRICT SCOPE — hard rules:\n" +
     "- Only answer questions about Scripture, biblical theology, biblical history, biblical languages, and Christian doctrine grounded in the Bible.\n" +
     "- Do NOT answer questions about current events, news, politics, science/health advice, technology, coding, math, trivia, or anything unrelated to Scripture.\n" +

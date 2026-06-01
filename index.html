@@ -525,12 +525,11 @@
   <!-- Chat pane -->
   <div class="pane chat-pane" id="pane-chat">
     <div class="chat-header">
-      <span class="chat-context-pill" id="chatContextPill">No passage selected</span>
       <button class="chat-clear" id="chatClear">Clear</button>
     </div>
     <div class="chat-messages" id="chatMessages">
       <div class="chat-messages-inner" id="chatMessagesInner">
-        <div class="empty">Ask anything about Scripture. The current chapter will be sent as context.</div>
+        <div class="empty">Ask anything about Scripture — theology, history, language, or a specific passage.</div>
       </div>
     </div>
     <div class="chat-input-wrap">
@@ -723,7 +722,7 @@ document.querySelectorAll('.tab').forEach(btn => {
     document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     $('pane-' + btn.dataset.pane).classList.add('active');
-    if (btn.dataset.pane === 'chat') { updateChatContext(); $('chatInput').focus(); }
+    if (btn.dataset.pane === 'chat') { $('chatInput').focus(); }
   });
 });
 
@@ -788,7 +787,6 @@ async function loadChapter(book, chapter) {
   const ref = book + ' ' + chapter;
   $('refLabel').textContent = ref;
   updateNavArrows();
-  updateChatContext();
 
   const body = $('readerBody');
   body.innerHTML = '<div class="loading"><span class="spinner"></span> Loading ' + escapeHtml(ref) + '…</div>';
@@ -1020,11 +1018,11 @@ async function callStudy(tool, ref, selection, version) {
   });
   return res.json();
 }
-async function callChat(messages, ref) {
+async function callChat(messages) {
   const res = await fetch(apiUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'chat', messages, ref }),
+    body: JSON.stringify({ action: 'chat', messages }),
   });
   return res.json();
 }
@@ -1225,10 +1223,6 @@ async function loadRefInPanel(ref) {
 }
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
-function updateChatContext() {
-  const ref = (state.book && state.chapter) ? (state.book + ' ' + state.chapter) : '';
-  $('chatContextPill').textContent = ref ? 'Context: ' + ref : 'No passage selected';
-}
 function renderChat() {
   const inner = $('chatMessagesInner');
   if (!state.chatMessages.length) {
@@ -1287,10 +1281,9 @@ async function sendChat() {
   $('chatSend').disabled = true;
 
   try {
-    const ref = (state.book && state.chapter) ? (state.book + ' ' + state.chapter) : '';
     // Send all turns except the placeholder
     const send = state.chatMessages.slice(0, -1);
-    const data = await callChat(send, ref);
+    const data = await callChat(send);
     state.chatMessages.pop(); // remove placeholder
     if (data.error) {
       state.chatMessages.push({ role: 'assistant', content: 'Error: ' + data.error });
@@ -1358,7 +1351,6 @@ window.addEventListener('resize', scheduleRealign);
     if (state.chapter) loadChapter(state.book, state.chapter);
   }
   renderChat();
-  updateChatContext();
 })();
 </script>
 </body>
