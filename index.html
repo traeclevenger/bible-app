@@ -220,10 +220,10 @@
     font-weight: normal; color: var(--text);
     font-size: inherit; font-style: normal;
   }
-  /* ESV & NLT verse numbers */
-  .passage sup.v,
+  /* ESV & NLT verse numbers — use !important on color to beat inline-style inheritance */
+  .passage sup.v, .passage span.v, .passage .v,
   .passage .vn, .passage .v-num, .passage .verse {
-    font-size: 0.7em !important; color: var(--accent-dim);
+    font-size: 0.7em !important; color: var(--accent-dim) !important;
     font-weight: 600; vertical-align: super;
     margin-right: 2px;
   }
