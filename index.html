@@ -828,7 +828,7 @@ function renderChapterGrid() {
     const b = document.createElement('button');
     b.className = 'chapter-btn';
     b.textContent = i;
-    if (i === state.chapter && state.book === state.loadedBook) b.classList.add('active');
+    // Active highlight is set only by loadChapter, not here — prevents stale highlights on book change.
     b.addEventListener('click', () => loadChapter(state.book, i));
     grid.appendChild(b);
   }
