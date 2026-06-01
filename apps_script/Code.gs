@@ -33,8 +33,9 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
-    if (action === 'study') return jsonOut(handleStudy(body));
-    if (action === 'chat')  return jsonOut(handleChat(body));
+    if (action === 'study')  return jsonOut(handleStudy(body));
+    if (action === 'chat')   return jsonOut(handleChat(body));
+    if (action === 'search') return jsonOut(handleSearch(body));
     return jsonOut({ error: 'Unknown action.' });
   } catch (err) {
     return jsonOut({ error: String((err && err.message) || err) });
@@ -248,6 +249,73 @@ function wantsMoreDetail(messages) {
     }
   }
   return false;
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+
+function handleSearch(body) {
+  const q = String(body.q || '').trim();
+  const type = String(body.type || 'keyword').toLowerCase();
+  if (!q) return { error: 'No query.' };
+  if (type === 'semantic') return handleSemanticSearch(q);
+  return handleKeywordSearch(q);
+}
+
+function handleKeywordSearch(q) {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'search:kw:' + q.toLowerCase().slice(0, 80);
+  const cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  const key = requiredProp('ESV_API_KEY');
+  const url = 'https://api.esv.org/v3/passage/search/?q=' + encodeURIComponent(q) + '&page-size=15';
+  const res = UrlFetchApp.fetch(url, {
+    headers: { Authorization: 'Token ' + key },
+    muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200)
+    throw new Error('ESV search ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 200));
+  const data = JSON.parse(res.getContentText());
+  const results = (data.results || []).map(function(r) {
+    return { reference: r.reference, text: stripHtml(r.content || '') };
+  });
+  const out = { results: results, total: data.total_results || results.length, type: 'keyword' };
+  if (results.length) cache.put(cacheKey, JSON.stringify(out), 3600);
+  return out;
+}
+
+function handleSemanticSearch(q) {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'search:sem:' + q.toLowerCase().slice(0, 80);
+  const cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  const response = callClaudeWithFallback({
+    model: SONNET_MODEL,
+    max_tokens: 1200,
+    system:
+      "You are a Bible verse finder. Given a theme, concept, question, or topic, identify the 6-10 most relevant Bible verses. " +
+      "For each, give the reference and a 1-2 sentence explanation of why it is relevant.\n\n" +
+      "Rules:\n" +
+      "- Plain text only — no markdown.\n" +
+      "- Cite each verse as: [[Book C:V]] — explanation. One entry per line.\n" +
+      "- No preamble, no headers, no numbering.\n" +
+      "- Stay conservative and Scripture-grounded.",
+    messages: [{ role: 'user', content: q }],
+  });
+  const text = extractText(response).trim();
+  const results = [];
+  text.split('\n').forEach(function(line) {
+    const m = line.match(/\[\[([^\]]+)\]\]\s*[—\-]\s*(.+)/);
+    if (m) results.push({ reference: m[1].trim(), text: m[2].trim() });
+  });
+  const out = { results: results, type: 'semantic' };
+  if (results.length) cache.put(cacheKey, JSON.stringify(out), 3600);
+  return out;
+}
+
+function stripHtml(html) {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
