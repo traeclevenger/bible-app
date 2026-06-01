@@ -1469,6 +1469,7 @@ function renderSearchResults(data, q) {
       const parsed = parseVerseRef(card.dataset.ref);
       if (parsed) {
         document.querySelector('.tab[data-pane="read"]').click();
+        openBookSilent(parsed.book);
         loadChapter(parsed.book, parsed.chapter);
       }
     });
