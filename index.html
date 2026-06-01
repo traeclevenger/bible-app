@@ -760,6 +760,7 @@ const state = {
   size: parseInt(localStorage.getItem(STORAGE.size) || '12', 10),
   book: localStorage.getItem(STORAGE.book) || '',
   chapter: parseInt(localStorage.getItem(STORAGE.chapter) || '0', 10) || 0,
+  loadedBook: localStorage.getItem(STORAGE.book) || '', // book whose chapter is actually displayed
   chatMessages: JSON.parse(localStorage.getItem(STORAGE.chat) || '[]'),
   // tool panel
   selection: '',
@@ -827,7 +828,7 @@ function renderChapterGrid() {
     const b = document.createElement('button');
     b.className = 'chapter-btn';
     b.textContent = i;
-    if (i === state.chapter) b.classList.add('active');
+    if (i === state.chapter && state.book === state.loadedBook) b.classList.add('active');
     b.addEventListener('click', () => loadChapter(state.book, i));
     grid.appendChild(b);
   }
@@ -844,6 +845,7 @@ $('menuBtn').addEventListener('click', () => $('sidebar').classList.toggle('open
 async function loadChapter(book, chapter) {
   state.book = book;
   state.chapter = chapter;
+  state.loadedBook = book;
   localStorage.setItem(STORAGE.book, book);
   localStorage.setItem(STORAGE.chapter, String(chapter));
   document.querySelectorAll('.chapter-btn').forEach((b, i) => b.classList.toggle('active', (i + 1) === chapter));
