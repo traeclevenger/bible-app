@@ -220,7 +220,8 @@
     font-weight: normal; color: var(--text);
     font-size: inherit; font-style: normal;
   }
-  /* NLT verse numbers */
+  /* ESV & NLT verse numbers */
+  .passage sup.v,
   .passage .vn, .passage .v-num, .passage .verse {
     font-size: 0.7em !important; color: var(--accent-dim);
     font-weight: 600; vertical-align: super;
@@ -870,7 +871,7 @@ function alignNotes(container) {
   if (!notes.length) return;
 
   // Helper: find the verse number element whose text matches `n`.
-  const verseEls = [...passage.querySelectorAll('.vn, .verse-num, .v-num, .verse, .chapter-num.as-verse, .chapter-number.as-verse')];
+  const verseEls = [...passage.querySelectorAll('sup.v, .vn, .verse-num, .v-num, .verse, .chapter-num.as-verse, .chapter-number.as-verse')];
   const findVerse = (n) => verseEls.find(el => (el.textContent || '').trim() === String(n));
 
   const passageRect = passage.getBoundingClientRect();
