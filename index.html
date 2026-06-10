@@ -125,12 +125,17 @@
     color: var(--text);
     width: 36px; height: 36px; border-radius: 8px;
     display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
   }
   .nav-arrow:hover { border-color: var(--accent-dim); }
   .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav-group {
+    display: flex; align-items: center; gap: 8px;
+    flex: 1; justify-content: center;
+  }
   .ref-label {
-    flex: 1; font-size: 14pt; font-weight: 600; letter-spacing: 0.01em;
-    text-align: center;
+    font-size: 14pt; font-weight: 600; letter-spacing: 0.01em;
+    text-align: center; white-space: nowrap;
   }
   .version-toggle {
     display: inline-flex; background: var(--bg-elev-2); border: 1px solid var(--border);
@@ -546,16 +551,14 @@
     </aside>
     <section class="reader">
       <div class="reader-toolbar">
-        <button class="nav-arrow" id="prevChapter" aria-label="Previous chapter">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <div class="ref-label" id="refLabel">Select a book</div>
-        <button class="nav-arrow" id="nextChapter" aria-label="Next chapter">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <div class="size-stepper">
-          <button class="size-btn" id="sizeDown" aria-label="Smaller text">−</button>
-          <button class="size-btn" id="sizeUp" aria-label="Larger text">+</button>
+        <div class="nav-group">
+          <button class="nav-arrow" id="prevChapter" aria-label="Previous chapter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="ref-label" id="refLabel">Select a book</div>
+          <button class="nav-arrow" id="nextChapter" aria-label="Next chapter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
         <div class="version-toggle" role="tablist">
           <button class="version-btn active" data-version="ESV">ESV</button>
