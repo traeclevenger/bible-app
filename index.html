@@ -420,6 +420,30 @@
   .search-result-ref { color: var(--accent); font-weight: 600; font-size: 11pt; margin-bottom: 5px; }
   .search-result-text { color: var(--text-dim); font-size: 10.5pt; line-height: 1.6; }
 
+  /* ── History pane ──────────────────────────────────────────────────── */
+  .history-pane { flex-direction: column; width: 100%; }
+  .history-list {
+    flex: 1; overflow-y: auto; padding: 16px 8%;
+    -webkit-overflow-scrolling: touch;
+  }
+  .history-inner { max-width: 720px; margin: 0 auto; }
+  .history-empty { color: var(--text-faint); font-size: 11pt; text-align: center; padding: 40px 0; }
+  .history-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 8px; cursor: pointer;
+  }
+  .history-item:hover { border-color: var(--accent-dim); }
+  .history-ref { color: var(--accent); font-weight: 600; font-size: 12pt; }
+  .history-time { color: var(--text-faint); font-size: 10pt; }
+  .history-clear {
+    display: block; margin: 0 auto 16px;
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--text-dim); padding: 6px 18px; border-radius: 8px; font-size: 10pt;
+    cursor: pointer;
+  }
+  .history-clear:hover { color: var(--text); border-color: var(--accent-dim); }
+
   /* ── Floating tool panel ───────────────────────────────────────────── */
   .scrim { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; }
   .scrim.show { display: block; }
@@ -535,6 +559,7 @@
       <button class="tab active" data-pane="read">Read</button>
       <button class="tab" data-pane="chat">Chat</button>
       <button class="tab" data-pane="search">Search</button>
+      <button class="tab" data-pane="history">History</button>
       <button class="tab" data-pane="settings">Settings</button>
     </div>
   </div>
@@ -603,6 +628,13 @@
     </div>
     <div class="search-results" id="searchResults">
       <div class="empty">Search by exact words or phrases (Keyword), or by theme, concept, or question (Semantic).</div>
+    </div>
+  </div>
+
+  <!-- History pane -->
+  <div class="pane history-pane" id="pane-history">
+    <div class="history-list" id="historyList">
+      <div class="history-inner" id="historyInner"></div>
     </div>
   </div>
 
@@ -689,6 +721,7 @@ const STORAGE = {
   chapter: 'bibleapp.chapter',
   chat: 'bibleapp.chat',
   cache: 'bibleapp.passageCache',
+  history: 'bibleapp.history',
 };
 // LRU cache for recently-viewed chapters. Capped at PASSAGE_CACHE_MAX entries
 // to keep total stored verses well under licensing limits (~500). Entries are
@@ -791,6 +824,7 @@ document.querySelectorAll('.tab').forEach(btn => {
     $('pane-' + btn.dataset.pane).classList.add('active');
     if (btn.dataset.pane === 'chat') { $('chatInput').focus(); }
     if (btn.dataset.pane === 'search') { $('searchInput').focus(); }
+    if (btn.dataset.pane === 'history') { renderHistory(); }
   });
 });
 
@@ -845,12 +879,70 @@ $('sidebarBack').addEventListener('click', () => {
 $('menuBtn').addEventListener('click', () => $('sidebar').classList.toggle('open'));
 
 // ── Chapter loading ──────────────────────────────────────────────────────────
+// ── History ──────────────────────────────────────────────────────────────────
+const HISTORY_MAX = 150;
+
+function pushHistory(book, chapter) {
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(STORAGE.history) || '[]'); } catch {}
+  // drop consecutive duplicate
+  if (hist.length && hist[0].book === book && hist[0].chapter === chapter) return;
+  hist.unshift({ book, chapter, ts: Date.now() });
+  if (hist.length > HISTORY_MAX) hist.length = HISTORY_MAX;
+  localStorage.setItem(STORAGE.history, JSON.stringify(hist));
+}
+
+function relativeTime(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return 'Just now';
+  if (sec < 3600) return Math.floor(sec / 60) + ' min ago';
+  if (sec < 86400) return Math.floor(sec / 3600) + ' hr ago';
+  const d = new Date(ts);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const same_year = d.getFullYear() === new Date().getFullYear();
+  return months[d.getMonth()] + ' ' + d.getDate() + (same_year ? '' : ', ' + d.getFullYear());
+}
+
+function renderHistory() {
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(STORAGE.history) || '[]'); } catch {}
+  const inner = $('historyInner');
+  if (!hist.length) {
+    inner.innerHTML = '<div class="history-empty">No history yet — open a chapter to start tracking.</div>';
+    return;
+  }
+  inner.innerHTML =
+    '<button class="history-clear" id="historyClear">Clear history</button>' +
+    hist.map(e =>
+      `<div class="history-item" data-book="${escapeHtml(e.book)}" data-chapter="${e.chapter}">` +
+        `<span class="history-ref">${escapeHtml(e.book)} ${e.chapter}</span>` +
+        `<span class="history-time">${relativeTime(e.ts)}</span>` +
+      `</div>`
+    ).join('');
+  inner.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const book = el.dataset.book, ch = parseInt(el.dataset.chapter, 10);
+      openBookSilent(book);
+      loadChapter(book, ch);
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+      $('pane-read').classList.add('active');
+      document.querySelector('.tab[data-pane="read"]').classList.add('active');
+    });
+  });
+  $('historyClear').addEventListener('click', () => {
+    localStorage.removeItem(STORAGE.history);
+    renderHistory();
+  });
+}
+
 async function loadChapter(book, chapter) {
   state.book = book;
   state.chapter = chapter;
   state.loadedBook = book;
   localStorage.setItem(STORAGE.book, book);
   localStorage.setItem(STORAGE.chapter, String(chapter));
+  pushHistory(book, chapter);
   document.querySelectorAll('.chapter-btn').forEach((b, i) => b.classList.toggle('active', (i + 1) === chapter));
 
   const ref = book + ' ' + chapter;
