@@ -68,7 +68,7 @@
   .sidebar {
     width: 280px; flex-shrink: 0;
     background: var(--bg-elev);
-    border-right: 1px solid var(--border);
+    border-left: 1px solid var(--border);
     display: flex; flex-direction: column;
     overflow: hidden;
   }
@@ -511,7 +511,7 @@
   }
   /* Phones: sidebar becomes a full-height overlay */
   @media (max-width: 700px) {
-    .sidebar { position: absolute; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); transition: transform 0.2s; }
+    .sidebar { position: absolute; right: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(100%); transition: transform 0.2s; }
     .sidebar.open { transform: translateX(0); }
     .menu-btn { display: inline-flex; }
   }
@@ -541,14 +541,6 @@
 
   <!-- Read pane -->
   <div class="pane read-pane active" id="pane-read">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <button class="back-btn" id="sidebarBack" style="display:none;">‹ Books</button>
-        <div class="sidebar-title" id="sidebarTitle">Books</div>
-      </div>
-      <div class="book-list" id="bookList"></div>
-      <div class="chapter-grid" id="chapterGrid" style="display:none;"></div>
-    </aside>
     <section class="reader">
       <div class="reader-toolbar">
         <div class="version-toggle" role="tablist">
@@ -566,9 +558,17 @@
         </div>
       </div>
       <div class="reader-body" id="readerBody">
-        <div class="empty">Choose a book from the left to begin.</div>
+        <div class="empty">Choose a book from the right to begin.</div>
       </div>
     </section>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="back-btn" id="sidebarBack" style="display:none;">‹ Books</button>
+        <div class="sidebar-title" id="sidebarTitle">Books</div>
+      </div>
+      <div class="book-list" id="bookList"></div>
+      <div class="chapter-grid" id="chapterGrid" style="display:none;"></div>
+    </aside>
   </div>
 
   <!-- Chat pane -->
